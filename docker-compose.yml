@@ -40,6 +40,10 @@ services:
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
+      - ./eslint.config.mjs:/app/eslint.config.mjs
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./.prettierrc:/app/.prettierrc
+      - ./.prettierignore:/app/.prettierignore
     command: npx tsx watch src/index.ts
 
   # --- Future services (uncomment when ready) ---
