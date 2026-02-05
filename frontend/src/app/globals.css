@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Clinical Warmth Palette */
+  --color-primary: #0F5757;
+  --color-primary-light: #1A7A7A;
+  --color-primary-dark: #0A3D3D;
+  --color-slate-deep: #1E2D3D;
+  --color-slate-darker: #0F1A24;
+  --color-amber-accent: #C9A66B;
+  --color-amber-light: #E8D5B5;
+  --color-warm-bg: #F8F6F3;
+  --color-warm-card: #FDFCFA;
+  --color-warm-border: #E5E0D8;
+
+  /* Glass effect */
+  --glass-bg: rgba(253, 252, 250, 0.85);
+  --glass-border: rgba(229, 224, 216, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-warm-bg);
+  color: var(--color-slate-deep);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-warm-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-warm-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C5BFB5;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Sound wave animation bars */
+@keyframes soundwave {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.soundwave-bar {
+  animation: soundwave 1.2s ease-in-out infinite;
+}
+
+.soundwave-bar:nth-child(1) { animation-delay: 0s; }
+.soundwave-bar:nth-child(2) { animation-delay: 0.1s; }
+.soundwave-bar:nth-child(3) { animation-delay: 0.2s; }
+.soundwave-bar:nth-child(4) { animation-delay: 0.3s; }
+.soundwave-bar:nth-child(5) { animation-delay: 0.2s; }
+.soundwave-bar:nth-child(6) { animation-delay: 0.1s; }
+.soundwave-bar:nth-child(7) { animation-delay: 0s; }
+
+/* Gradient mesh background */
+.gradient-mesh {
+  background:
+    radial-gradient(at 20% 30%, rgba(15, 87, 87, 0.08) 0%, transparent 50%),
+    radial-gradient(at 80% 70%, rgba(201, 166, 107, 0.06) 0%, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(30, 45, 61, 0.03) 0%, transparent 70%),
+    var(--color-warm-bg);
+}
+
+/* Glass card effect */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+/* Subtle grain texture overlay */
+.grain-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Stagger animation utility */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
