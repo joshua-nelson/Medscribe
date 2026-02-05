@@ -8,6 +8,7 @@ import authRouter from './routes/auth';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRateLimiter } from './middleware/rateLimiter';
+import { sessionTimeoutMiddleware } from './middleware/sessionTimeout';
 import { config } from './config';
 
 const app = express();
@@ -58,6 +59,9 @@ app.use(cookieParser());
 
 // Request logging (HIPAA-safe)
 app.use(requestLogger);
+
+// SEC-013: Session idle timeout tracking
+app.use(sessionTimeoutMiddleware);
 
 // Routes
 app.use('/api', healthRouter);
