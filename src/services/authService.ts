@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
+import { timingSafeEqual } from 'crypto';
 import { config } from '../config';
 import redis from '../utils/redis';
 
@@ -57,6 +58,29 @@ export function verifyAccessToken(token: string): AccessTokenPayload | null {
   }
 }
 
+/**
+ * SEC-010: Timing-safe string comparison
+ * Prevents timing attacks when comparing tokens
+ */
+function timingSafeStringCompare(a: string, b: string): boolean {
+  try {
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+
+    // If lengths don't match, still compare to avoid timing leak
+    if (bufA.length !== bufB.length) {
+      // Compare with a dummy buffer to maintain constant time
+      const dummy = Buffer.alloc(bufA.length);
+      timingSafeEqual(bufA, dummy);
+      return false;
+    }
+
+    return timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
 export async function verifyRefreshToken(token: string): Promise<RefreshTokenPayload | null> {
   try {
     const payload = jwt.verify(token, config.jwt.secret) as RefreshTokenPayload;
@@ -64,7 +88,9 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
 
     // Check if jti matches what's stored in Redis
     const storedJti = await redis.get(`${REFRESH_TOKEN_PREFIX}${payload.sub}`);
-    if (storedJti !== payload.jti) return null;
+    if (!storedJti || !timingSafeStringCompare(storedJti, payload.jti)) {
+      return null;
+    }
 
     return payload;
   } catch {
