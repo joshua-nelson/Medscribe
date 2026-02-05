@@ -46,13 +46,19 @@ services:
       - ./.prettierignore:/app/.prettierignore
     command: npx tsx watch src/index.ts
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+
   # --- Future services (uncomment when ready) ---
-  # frontend:
-  #   build: ./frontend
-  #   ports:
-  #     - "3001:3000"
-  #   depends_on:
-  #     - backend
 
   # asr:
   #   build: ./services/asr
