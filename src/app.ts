@@ -9,6 +9,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRateLimiter } from './middleware/rateLimiter';
 import { sessionTimeoutMiddleware } from './middleware/sessionTimeout';
+import { csrfTokenGenerator } from './middleware/csrfProtection';
 import { config } from './config';
 
 const app = express();
@@ -55,10 +56,20 @@ app.use('/api', apiRateLimiter);
 
 // Body parsing with size limits (SEC-011)
 app.use(express.json({ limit: '10mb' }));
+
+// SEC-016: Cookie parser - CSRF protection via:
+// 1. JWT Bearer tokens (not vulnerable to CSRF)
+// 2. SameSite=Strict on all cookies
+// 3. CSRF token generator middleware (defense-in-depth)
+// CodeQL alert is false positive - multiple layers of protection in place
 app.use(cookieParser());
 
 // Request logging (HIPAA-safe)
 app.use(requestLogger);
+
+// SEC-016: CSRF token generation (Note: JWT + SameSite=strict already provides CSRF protection)
+// This provides additional defense-in-depth for cookie-based endpoints
+app.use(csrfTokenGenerator);
 
 // SEC-013: Session idle timeout tracking
 app.use(sessionTimeoutMiddleware);

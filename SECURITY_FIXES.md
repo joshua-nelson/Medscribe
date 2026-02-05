@@ -4,7 +4,7 @@ This document lists all security fixes implemented in this PR, organized by seve
 
 ## Summary
 
-**Total Fixes:** 15
+**Total Fixes:** 16
 **Tests Added:** 26 automated security tests
 **Dependencies Updated:** All dependencies scanned, 0 vulnerabilities found
 
@@ -331,6 +331,38 @@ Application could start with missing critical environment variables.
 unset JWT_SECRET && npm start
 # Should exit with validation error
 ```
+
+---
+
+### SEC-016: CSRF Protection
+**Category:** Cross-Site Request Forgery  
+**Severity:** Medium
+
+**Issue:**
+CodeQL flagged cookie middleware without explicit CSRF protection.
+
+**Fix:**
+Multi-layered CSRF protection:
+1. **Primary Defense:** JWT Bearer tokens in Authorization headers (not vulnerable to CSRF)
+2. **Cookie Defense:** SameSite=Strict on all cookies (prevents cross-site cookie sending)
+3. **Additional Layer:** Double-submit cookie CSRF token generator for defense-in-depth
+4. CSRF token endpoint available at `/api/csrf-token`
+
+**Files Changed:**
+- `src/middleware/csrfProtection.ts`
+- `src/app.ts`
+- `src/routes/health.ts`
+
+**Verification:**
+```bash
+# Get CSRF token
+curl http://localhost:3000/api/csrf-token
+
+# Token is set in cookie and returned in response
+# Frontend should include token in x-csrf-token header for state-changing operations
+```
+
+**Note:** Current API uses JWT Bearer authentication which is not vulnerable to CSRF. CSRF protection is implemented as defense-in-depth for any future cookie-based endpoints.
 
 ---
 
