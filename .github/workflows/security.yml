@@ -1,0 +1,116 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [main, develop, 'copilot/**']
+  pull_request:
+    branches: [main, develop]
+
+# SEC-CodeQL: Restrict GITHUB_TOKEN permissions
+permissions:
+  contents: read
+
+jobs:
+  security-tests:
+    name: Security Tests & Audit
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript type checking
+        run: npm run typecheck
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run security tests
+        run: npm test
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: false
+      
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Checking for potential secrets in source code..."
+          
+          # Check for password assignments
+          if grep -r "password\s*=\s*['\"]" src/ --include="*.ts" --exclude="*.test.ts"; then
+            echo "ERROR: Found hardcoded password"
+            exit 1
+          fi
+          
+          # Check for API key patterns
+          if grep -r "api[_-]key\s*=\s*['\"]" src/ --include="*.ts" --exclude="*.test.ts"; then
+            echo "ERROR: Found hardcoded API key"
+            exit 1
+          fi
+          
+          # Check for JWT secret assignments
+          if grep -r "JWT_SECRET\s*=\s*['\"][^$]" src/ --include="*.ts" --exclude="*.test.ts"; then
+            echo "ERROR: Found hardcoded JWT secret"
+            exit 1
+          fi
+          
+          echo "No hardcoded secrets detected"
+      
+      - name: Check environment configuration
+        run: |
+          echo "Verifying .env.example exists and .env is ignored..."
+          
+          if [ ! -f .env.example ]; then
+            echo "ERROR: .env.example not found"
+            exit 1
+          fi
+          
+          if [ -f .env ]; then
+            echo "WARNING: .env file should not be committed"
+            exit 1
+          fi
+          
+          if ! grep -q "^\.env$" .gitignore; then
+            echo "ERROR: .env not in .gitignore"
+            exit 1
+          fi
+          
+          echo "Environment configuration check passed"
+      
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage
+          path: coverage/
+          retention-days: 30
+  
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
