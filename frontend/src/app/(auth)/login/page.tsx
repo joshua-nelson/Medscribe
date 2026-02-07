@@ -26,96 +26,158 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-mesh grain-overlay relative flex items-center justify-center p-4">
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-80 h-80 bg-amber-accent/5 rounded-full blur-3xl" />
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--lux-bg-canvas)] p-4 lg:p-8">
+      <div className="mx-auto w-full max-w-[1240px] overflow-hidden rounded-2xl border border-[var(--lux-border-subtle)] bg-white shadow-[0_14px_50px_rgba(16,24,40,0.12)] lg:grid lg:min-h-[760px] lg:grid-cols-2">
+        <aside className="relative hidden overflow-hidden rounded-l-2xl text-white lg:block">
+          <div className="absolute inset-0 rounded-l-2xl bg-[linear-gradient(145deg,#6E56CF_0%,#5B45B0_56%,#8B77DE_100%)]" />
+          <div className="absolute -left-16 top-[-90px] h-[360px] w-[360px] rotate-12 bg-white/10" />
+          <div className="absolute left-[34%] top-[-40px] h-[440px] w-[240px] -rotate-[42deg] bg-white/10" />
+          <div className="absolute right-[-90px] top-[140px] h-[260px] w-[340px] -rotate-12 bg-white/12" />
+          <div className="absolute right-[130px] top-[195px] h-[170px] w-[220px] -rotate-[20deg] bg-white/14" />
 
-      <div className="relative w-full max-w-md animate-fade-in">
-        {/* Card */}
-        <div className="glass-card rounded-3xl shadow-2xl shadow-slate-900/5 p-8 md:p-10">
-          {/* Logo & Branding */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 mb-5">
-              <SoundWave barCount={5} color="bg-white" className="h-6" />
-            </div>
-            <h1 className="font-display text-3xl font-semibold text-slate-850 tracking-tight">
-              MedScribe
-            </h1>
-            <p className="mt-2 text-slate-850/60 font-body">
-              Medical transcription, simplified
-            </p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="animate-slide-up bg-red-50 border border-red-200/60 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                {error}
+          <div className="relative z-10 flex h-full flex-col p-10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/15">
+                <SoundWave barCount={3} color="bg-white" className="h-5" />
               </div>
-            )}
-
-            <div className="space-y-1">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-850/80 pl-1">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="w-full px-4 py-3.5 rounded-xl bg-warm-100 border border-warm-300 text-slate-850 placeholder:text-slate-850/40 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all duration-200"
-                placeholder="provider@clinic.com"
-              />
+              <p className="font-body text-2xl font-semibold tracking-tight">MedScribe</p>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-850/80 pl-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="w-full px-4 py-3.5 rounded-xl bg-warm-100 border border-warm-300 text-slate-850 placeholder:text-slate-850/40 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all duration-200"
-                placeholder="Enter your password"
-              />
+            <div className="my-auto max-w-sm">
+              <h2 className="font-body text-[46px] font-semibold leading-[1.1] tracking-[-0.01em]">
+                Notes that write themselves.
+              </h2>
+              <p className="mt-4 font-body text-lg leading-relaxed text-white/80">
+                Real-time medical transcription and SOAP note generation so clinicians can focus on
+                patients.
+              </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="relative w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-display font-medium py-4 px-6 rounded-xl shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-lg overflow-hidden group"
-            >
-              <span className={`flex items-center justify-center gap-2 transition-opacity ${isSubmitting ? 'opacity-0' : 'opacity-100'}`}>
-                Sign in
-                <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-              {isSubmitting && (
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <SoundWave barCount={5} color="bg-white/80" className="h-5" />
-                </span>
+            <div className="flex items-center gap-2 pb-2">
+              <span className="h-1.5 w-6 rounded-full bg-white/65" />
+              <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
+              <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
+            </div>
+          </div>
+        </aside>
+
+        <main className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
+          <div className="w-full max-w-[520px]">
+            <h1 className="font-display text-[42px] font-semibold tracking-[-0.01em] text-[var(--lux-text-primary)]">
+              Login
+            </h1>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4.5 sm:mt-7">
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
               )}
-            </button>
-          </form>
-        </div>
 
-        {/* Footer */}
-        <p className="text-center mt-6 text-sm text-slate-850/50">
-          HIPAA Compliant • On-Premise • Secure
-        </p>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-1.5 block font-body text-sm font-medium text-slate-800"
+                >
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="h-12 w-full rounded-lg border border-[var(--lux-border-strong)] bg-[var(--lux-bg-elevated)] px-4 font-body text-sm text-[var(--lux-text-primary)] outline-none transition focus:border-[var(--lux-brand-primary)] focus:ring-2 focus:ring-[var(--lux-brand-primary)]/20"
+                  placeholder="name@mail.com"
+                />
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                  <label
+                    htmlFor="password"
+                    className="font-body text-sm font-medium text-slate-800"
+                  >
+                    Password
+                  </label>
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="h-12 w-full rounded-lg border border-[var(--lux-border-strong)] bg-[var(--lux-bg-elevated)] px-4 font-body text-sm text-[var(--lux-text-primary)] outline-none transition focus:border-[var(--lux-brand-primary)] focus:ring-2 focus:ring-[var(--lux-brand-primary)]/20"
+                  placeholder="********"
+                />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="rounded-md px-1 py-1 font-body text-xs font-semibold text-[var(--lux-brand-primary-strong)] hover:underline"
+                  >
+                    Reset Password
+                  </button>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-3 rounded-lg border border-[var(--lux-border-subtle)] bg-[var(--lux-bg-elevated)] px-3 py-2 font-body text-sm text-[var(--lux-text-secondary)]">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-[var(--lux-border-strong)] text-[var(--lux-brand-primary)] focus:ring-[var(--lux-brand-primary)]/30"
+                />
+                Remember Password
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-12 w-full rounded-lg bg-[var(--lux-brand-primary)] font-body text-sm font-semibold text-white transition hover:bg-[var(--lux-brand-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? 'Logging in...' : 'Login'}
+              </button>
+
+              <p className="text-center font-body text-base text-slate-700">
+                Don&apos;t have an account?{' '}
+                <a href="#" className="font-medium text-[var(--lux-brand-primary-strong)]">
+                  Sign up
+                </a>
+              </p>
+
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--lux-text-muted)]">
+                <span className="h-px flex-1 bg-[var(--lux-border-subtle)]" />
+                <span>or</span>
+                <span className="h-px flex-1 bg-[var(--lux-border-subtle)]" />
+              </div>
+
+              <button
+                type="button"
+                className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[var(--lux-border-subtle)] bg-white font-body text-sm font-medium text-[var(--lux-text-primary)] hover:bg-[var(--lux-bg-elevated)]"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.7h5.5a4.7 4.7 0 01-2 3.1v2.6h3.2c1.9-1.8 3.1-4.5 3.1-7.4z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 22c2.7 0 4.9-.9 6.6-2.4l-3.2-2.6c-.9.6-2 .9-3.4.9-2.6 0-4.8-1.8-5.6-4.2H3.1v2.7A10 10 0 0012 22z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M6.4 13.7a6 6 0 010-3.4V7.6H3.1A10 10 0 002 12c0 1.6.4 3.2 1.1 4.4l3.3-2.7z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.9-2.9A9.8 9.8 0 0012 2 10 10 0 003.1 7.6l3.3 2.7c.8-2.4 3-4.2 5.6-4.2z"
+                  />
+                </svg>
+                Authorize with Google
+              </button>
+            </form>
+          </div>
+        </main>
       </div>
     </div>
   );

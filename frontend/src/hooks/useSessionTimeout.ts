@@ -14,8 +14,7 @@ export function useSessionTimeout() {
   const [showWarning, setShowWarning] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const lastActivityRef = useRef<number>(Date.now());
-  const warningIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const logoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const warningIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const resetTimers = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -24,10 +23,6 @@ export function useSessionTimeout() {
     if (warningIntervalRef.current) {
       clearInterval(warningIntervalRef.current);
       warningIntervalRef.current = null;
-    }
-    if (logoutTimeoutRef.current) {
-      clearTimeout(logoutTimeoutRef.current);
-      logoutTimeoutRef.current = null;
     }
   }, []);
 
@@ -80,15 +75,12 @@ export function useSessionTimeout() {
       }
     };
 
-    const intervalId = setInterval(checkTimeout, 1000);
+    const intervalId = setInterval(checkTimeout, showWarning ? 1000 : 5000);
 
     return () => {
       clearInterval(intervalId);
       if (warningIntervalRef.current) {
         clearInterval(warningIntervalRef.current);
-      }
-      if (logoutTimeoutRef.current) {
-        clearTimeout(logoutTimeoutRef.current);
       }
     };
   }, [isAuthenticated, showWarning, logout, resetTimers]);

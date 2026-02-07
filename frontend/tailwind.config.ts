@@ -9,43 +9,58 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: '#F7FAF8',
+        foreground: '#132019',
+        muted: '#EAF1EC',
+        'muted-foreground': '#5C6F63',
+        accent: '#8C00FF',
+        'accent-secondary': '#B066FF',
+        card: '#FFFFFF',
+        border: '#D4E0D8',
+        ring: '#8C00FF',
         // Clinical Warmth palette
         primary: {
-          50: '#E8F4F4',
-          100: '#C5E4E4',
-          200: '#9DD1D1',
-          300: '#74BDBD',
-          400: '#4FA9A9',
-          500: '#0F5757',
-          600: '#0D4A4A',
-          700: '#0A3D3D',
-          800: '#082F2F',
-          900: '#052222',
+          50: '#F5E8FF',
+          100: '#E9CCFF',
+          200: '#D8A3FF',
+          300: '#C678FF',
+          400: '#AD45FF',
+          500: '#8C00FF',
+          600: '#7600D9',
+          700: '#6100B3',
+          800: '#4B008C',
+          900: '#350066',
         },
         slate: {
-          850: '#1E2D3D',
-          950: '#0F1A24',
+          850: '#1D2A23',
+          950: '#101713',
         },
         amber: {
-          accent: '#C9A66B',
-          light: '#E8D5B5',
+          accent: '#C08A5A',
+          light: '#E7CDB5',
         },
         warm: {
-          50: '#FDFCFA',
-          100: '#F8F6F3',
-          200: '#F0EDE8',
-          300: '#E5E0D8',
+          50: '#FAFBFA',
+          100: '#F2F5F2',
+          200: '#E5EBE6',
+          300: '#D2DDD4',
         },
       },
       fontFamily: {
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
         body: ['Source Sans 3', 'system-ui', 'sans-serif'],
+        'mm-display': ['Fraunces', 'Georgia', 'serif'],
+        'mm-body': ['Source Sans 3', 'system-ui', 'sans-serif'],
+        'mm-mono': ['ui-monospace', 'monospace'],
       },
       animation: {
-        'wave': 'wave 2s ease-in-out infinite',
+        wave: 'wave 2s ease-in-out infinite',
         'fade-in': 'fadeIn 0.5s ease-out forwards',
         'slide-up': 'slideUp 0.5s ease-out forwards',
         'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+        'pulse-dot': 'pulseDot 2s ease-in-out infinite',
+        'rotate-slow': 'rotateSlow 60s linear infinite',
+        'float-card': 'floatCard 5s ease-in-out infinite',
       },
       keyframes: {
         wave: {
@@ -63,6 +78,18 @@ const config: Config = {
         pulseSoft: {
           '0%, 100%': { opacity: '0.4' },
           '50%': { opacity: '0.7' },
+        },
+        pulseDot: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.3)', opacity: '0.7' },
+        },
+        rotateSlow: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        floatCard: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
       backdropBlur: {

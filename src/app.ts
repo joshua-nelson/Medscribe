@@ -5,6 +5,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
+import transcriptionRouter from './routes/transcriptions';
+import encounterRouter from './routes/encounters';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { config } from './config';
@@ -28,6 +30,8 @@ app.use(requestLogger);
 // Routes
 app.use('/api', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/transcriptions', transcriptionRouter);
+app.use('/api/encounters', encounterRouter);
 
 // Error handling (must be last)
 app.use(errorHandler);

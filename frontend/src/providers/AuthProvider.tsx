@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useAuthController } from '@/core/auth/useAuthController';
 import { useAuthStore } from '@/stores/authStore';
 
 interface AuthProviderProps {
@@ -11,17 +12,40 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const pathname = usePathname();
-  const { checkAuth } = useAuth();
-  const { setLoading } = useAuthStore();
+  const router = useRouter();
+  const { checkAuth } = useAuthController();
+  const { isAuthenticated, setLoading } = useAuthStore();
+  const hasCheckedAuthRef = useRef(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Skip auth check on public routes (login page)
     if (pathname === '/login') {
       setLoading(false);
       return;
     }
-    checkAuth();
-  }, [pathname, checkAuth, setLoading]);
+
+    if (isAuthenticated || hasCheckedAuthRef.current) {
+      return;
+    }
+
+    hasCheckedAuthRef.current = true;
+
+    void checkAuth().then((success) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (!success) {
+        router.replace('/login');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, checkAuth, isAuthenticated, router, setLoading]);
 
   return <>{children}</>;
 }

@@ -1,28 +1,38 @@
-import { create } from 'zustand';
-import { AuthState, Provider } from '@/types';
+import { useCallback, useMemo } from 'react';
+import { clearAuth, setAuth, setAuthLoading } from '@/features/auth/authSlice';
+import { selectAuth } from '@/features/auth/selectors';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { Provider } from '@/types';
 
-export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,
-  user: null,
-  isLoading: true,
-  isAuthenticated: false,
+export function useAuthStore() {
+  const auth = useAppSelector(selectAuth);
+  const dispatch = useAppDispatch();
 
-  setAuth: (token: string, user: Provider) =>
-    set({
-      accessToken: token,
-      user,
-      isAuthenticated: true,
-      isLoading: false,
+  const setAuthState = useCallback(
+    (token: string, user: Provider) => {
+      dispatch(setAuth({ accessToken: token, user }));
+    },
+    [dispatch],
+  );
+
+  const clearAuthState = useCallback(() => {
+    dispatch(clearAuth());
+  }, [dispatch]);
+
+  const setLoading = useCallback(
+    (loading: boolean) => {
+      dispatch(setAuthLoading(loading));
+    },
+    [dispatch],
+  );
+
+  return useMemo(
+    () => ({
+      ...auth,
+      setAuth: setAuthState,
+      clearAuth: clearAuthState,
+      setLoading,
     }),
-
-  clearAuth: () =>
-    set({
-      accessToken: null,
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    }),
-
-  setLoading: (loading: boolean) =>
-    set({ isLoading: loading }),
-}));
+    [auth, clearAuthState, setAuthState, setLoading],
+  );
+}

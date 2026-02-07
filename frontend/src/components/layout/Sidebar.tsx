@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const navItems = [
+export const primaryNavItems = [
   {
     href: '/',
-    label: 'Dashboard',
+    label: 'Home',
     icon: (
       <path
         strokeLinecap="round"
@@ -17,14 +17,26 @@ const navItems = [
     ),
   },
   {
-    href: '/encounters',
-    label: 'Encounters',
+    href: '/encounters/new',
+    label: 'Transcribe',
     icon: (
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.5}
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        d="M4 7h16M4 12h16M4 17h10"
+      />
+    ),
+  },
+  {
+    href: '#',
+    label: 'Settings',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M10.5 6h3m-8 6h13m-10 6h7"
       />
     ),
   },
@@ -34,40 +46,57 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white/50 border-r border-warm-300 min-h-[calc(100vh-4.5rem)] hidden lg:block">
-      <nav className="p-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
+    <aside className="relative hidden min-h-[calc(100vh-74px)] w-[272px] border-r border-[var(--lux-border-subtle)] bg-[var(--lux-bg-elevated)] lg:flex lg:flex-col">
+      <nav className="flex-1 space-y-1 p-4">
+        {primaryNavItems.map((item) => {
+          const isActive = item.label === 'Settings' ? false : pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-body text-sm leading-none transition-all duration-200 ${
                 isActive
-                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                  : 'text-slate-850/70 hover:bg-warm-100 hover:text-slate-850'
+                  ? 'bg-[var(--lux-brand-primary-soft)] text-[var(--lux-brand-primary-strong)]'
+                  : 'text-[var(--lux-text-secondary)] hover:bg-white hover:text-[var(--lux-text-primary)]'
               }`}
             >
               <svg
-                className={`w-5 h-5 transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`}
+                className={`h-[18px] w-[18px] transition-transform duration-200 ${
+                  isActive
+                    ? 'text-[var(--lux-brand-primary-strong)]'
+                    : 'text-[var(--lux-text-muted)] group-hover:text-[var(--lux-text-primary)]'
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 {item.icon}
               </svg>
-              <span className="font-medium">{item.label}</span>
+              <span className="font-semibold">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom decoration */}
-      <div className="absolute bottom-6 left-4 right-4">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-primary-500/5 to-amber-accent/5 border border-primary-500/10">
-          <p className="text-xs text-slate-850/50 text-center">
-            MedScribe v0.1.0
+      <div className="border-t border-[var(--lux-border-subtle)] px-4 py-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-body text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lux-text-muted)]">
+            Note Groups
           </p>
+          <button className="font-body text-xl text-[var(--lux-text-muted)] transition hover:text-[var(--lux-text-primary)]">
+            +
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          {['Encounter Notes', 'SOAP Drafts', 'Archived Visits'].map((name) => (
+            <div
+              key={name}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 font-body text-sm text-[var(--lux-text-secondary)]"
+            >
+              <span className="h-2.5 w-2.5 rounded-sm bg-[var(--lux-border-strong)]" />
+              <span className="truncate">{name}</span>
+            </div>
+          ))}
         </div>
       </div>
     </aside>

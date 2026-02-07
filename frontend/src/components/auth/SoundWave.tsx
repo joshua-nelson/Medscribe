@@ -7,8 +7,9 @@ interface SoundWaveProps {
 }
 
 export function SoundWave({ className = '', barCount = 7, color = 'bg-primary-500' }: SoundWaveProps) {
+  const heightClass = className.trim().length > 0 ? '' : 'h-8';
   return (
-    <div className={`flex items-center justify-center gap-1 h-8 ${className}`}>
+    <div className={`flex items-center justify-center gap-1 ${heightClass} ${className}`.trim()}>
       {Array.from({ length: barCount }).map((_, i) => (
         <div
           key={i}

@@ -5,38 +5,45 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
+    expose:
+      - '5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    expose:
+      - '6379'
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
 
   backend:
     build: .
-    ports:
-      - "3000:3000"
+    expose:
+      - '3000'
     env_file: .env
+    environment:
+      - ASR_URL=http://asr:8000
+      - DIARIZATION_URL=http://diarization:8500
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      asr:
+        condition: service_started
+      diarization:
+        condition: service_started
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
@@ -48,41 +55,58 @@ services:
 
   frontend:
     build: ./frontend
-    ports:
-      - "3001:3000"
+    expose:
+      - '3000'
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+      - NEXT_PUBLIC_API_URL=/api
     depends_on:
       - backend
+    command: sh -c "npm ci && npm run dev"
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - '80:80'
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  asr:
+    build: ./services/asr
+    expose:
+      - '8000'
+    environment:
+      - ASR_ENGINE=${ASR_ENGINE:-openai_whisper}
+      - ASR_COMPUTE_TYPE=${ASR_COMPUTE_TYPE:-int8}
+      - ASR_ENABLE_BASE64_FALLBACK=${ASR_ENABLE_BASE64_FALLBACK:-true}
+      - ASR_MAX_INFLIGHT=${ASR_MAX_INFLIGHT:-2}
+      - ASR_QUEUE_MAX=${ASR_QUEUE_MAX:-4}
+      - ASR_QUEUE_TIMEOUT_MS=${ASR_QUEUE_TIMEOUT_MS:-2500}
+    depends_on:
+      - redis
+
+  diarization:
+    build: ./services/diarization
+    expose:
+      - '8500'
+    env_file: .env
+    environment:
+      - HUGGINGFACE_HUB_TOKEN=${HUGGINGFACE_HUB_TOKEN}
+      - DIARIZATION_MODEL=${DIARIZATION_MODEL:-pyannote/speaker-diarization-3.1}
+      - DIARIZATION_DEVICE=${DIARIZATION_DEVICE:-cpu}
+      - DIARIZATION_MAX_INFLIGHT=${DIARIZATION_MAX_INFLIGHT:-1}
+      - DIARIZATION_QUEUE_MAX=${DIARIZATION_QUEUE_MAX:-2}
+      - DIARIZATION_QUEUE_TIMEOUT_MS=${DIARIZATION_QUEUE_TIMEOUT_MS:-5000}
+    depends_on:
+      - redis
 
   # --- Future services (uncomment when ready) ---
-
-  # asr:
-  #   build: ./services/asr
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: 1
-  #             capabilities: [gpu]
-  #   depends_on:
-  #     - redis
-
-  # diarization:
-  #   build: ./services/diarization
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: 1
-  #             capabilities: [gpu]
-  #   depends_on:
-  #     - redis
 
   # note-generation:
   #   build: ./services/note-generation
@@ -104,3 +128,5 @@ services:
 volumes:
   pgdata:
   redisdata:
+  frontend_node_modules:
+  frontend_next:

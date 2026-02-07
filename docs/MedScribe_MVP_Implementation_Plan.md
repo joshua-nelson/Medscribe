@@ -52,7 +52,7 @@ Before writing any application code, complete these foundational tasks:
    ```
 5. Add Redis service to Docker Compose (for sessions/cache)
 
-**Verification:** Can connect to database and run migrations up/down
+**Verification:** Can connect to database and run migrations/c/down
 
 ---
 

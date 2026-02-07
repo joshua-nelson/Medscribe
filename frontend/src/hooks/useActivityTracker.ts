@@ -7,7 +7,6 @@ const DEBOUNCE_MS = 1000;
 
 export function useActivityTracker(onActivity: () => void) {
   const lastActivity = useRef<number>(Date.now());
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleActivity = useCallback(() => {
     const now = Date.now();
@@ -26,9 +25,6 @@ export function useActivityTracker(onActivity: () => void) {
       ACTIVITY_EVENTS.forEach((event) => {
         window.removeEventListener(event, handleActivity);
       });
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
   }, [handleActivity]);
 

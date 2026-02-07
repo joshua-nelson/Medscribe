@@ -15,17 +15,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen gradient-mesh flex flex-col items-center justify-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 flex items-center justify-center">
-          <SoundWave barCount={5} color="bg-white" className="h-5" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--lux-bg-canvas)] px-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--lux-brand-primary)] shadow-[var(--lux-shadow-brand)] sm:h-14 sm:w-14">
+          <SoundWave barCount={5} color="bg-white" className="h-[18px] sm:h-5" />
         </div>
-        <p className="text-slate-850/60 font-body animate-pulse-soft">Loading...</p>
+        <p className="animate-pulse-soft font-body text-sm font-semibold text-[var(--lux-text-secondary)] sm:text-base">
+          Loading...
+        </p>
       </div>
     );
   }
