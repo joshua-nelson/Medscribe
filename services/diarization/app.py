@@ -132,6 +132,8 @@ def _load_pipeline(model_name: str) -> Any:
             else:
                 pipeline.to(torch.device("cpu"))
         except Exception:
+            # Silently fall back if torch is unavailable or CUDA setup fails.
+            # The pipeline will remain on its default device (typically CPU).
             pass
 
     _PIPELINE_CACHE[cache_key] = pipeline
