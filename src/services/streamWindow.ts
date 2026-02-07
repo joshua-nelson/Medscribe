@@ -61,8 +61,15 @@ export function selectChunksForWindow(
 }
 
 export function pruneChunkQueue(queue: TimedAudioChunk[], minRetainedEndMs: number) {
-  while (queue.length > 0 && queue[0].endMs <= minRetainedEndMs) {
-    queue.shift();
+  // Find the first chunk to retain (where endMs > minRetainedEndMs)
+  let firstRetainedIndex = 0;
+  while (firstRetainedIndex < queue.length && queue[firstRetainedIndex].endMs <= minRetainedEndMs) {
+    firstRetainedIndex++;
+  }
+  
+  // Bulk removal: remove all chunks before the first retained index in one operation
+  if (firstRetainedIndex > 0) {
+    queue.splice(0, firstRetainedIndex);
   }
 }
 
