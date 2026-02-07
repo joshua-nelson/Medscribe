@@ -5,6 +5,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import { Agent } from 'undici';
+import { getExtensionForMime } from '../utils/audioMime';
 
 const execFileAsync = promisify(execFile);
 const asrDispatcher = new Agent({
@@ -82,14 +83,6 @@ function parseBoolean(value: string | undefined, fallback: boolean) {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return fallback;
-}
-
-function getExtensionForMime(mimeType?: string) {
-  if (!mimeType) return '.webm';
-  if (mimeType.includes('wav')) return '.wav';
-  if (mimeType.includes('ogg')) return '.ogg';
-  if (mimeType.includes('webm')) return '.webm';
-  return '.webm';
 }
 
 function getMimeForFilename(filename: string) {
