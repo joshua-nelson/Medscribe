@@ -150,6 +150,116 @@ test('createTranscription processes encounter and stores transcript', async () =
   assert.equal(createdTranscriptPayload.data.segments[0].speaker, 'SPEAKER_0');
 });
 
+test('createTranscription restores status on transcription error', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'medscribe-transcription-controller-'));
+  const audioPath = path.join(tmpDir, 'audio.webm');
+  await fs.writeFile(audioPath, Buffer.from('audio'));
+
+  const previousAsrUrl = process.env.ASR_URL;
+  process.env.ASR_URL = 'http://asr.local';
+
+  (globalThis as any).fetch = async () => ({
+    ok: false,
+    status: 500,
+    statusText: 'Internal Server Error',
+  });
+
+  prisma.encounter.findFirst = async () => ({
+    id: 'enc-1',
+    providerId: 'provider-1',
+    status: 'draft',
+    audioFilePath: audioPath,
+    speakerAssignments: { providerSpeaker: 'SPEAKER_0', patientSpeaker: 'SPEAKER_1' },
+  });
+
+  const updates: unknown[] = [];
+  prisma.encounter.update = async (args: unknown) => {
+    updates.push(args);
+    return { id: 'enc-1' };
+  };
+
+  const req = { provider: { id: 'provider-1' }, body: { encounterId: 'enc-1' } };
+  const res = createMockResponse();
+
+  try {
+    await assert.rejects(controller.createTranscription(req, res));
+  } finally {
+    (globalThis as any).fetch = originalFetch;
+    if (previousAsrUrl === undefined) {
+      delete process.env.ASR_URL;
+    } else {
+      process.env.ASR_URL = previousAsrUrl;
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+
+  assert.equal(updates.length, 2);
+  assert.deepEqual((updates[0] as any).data, { status: 'processing' });
+  assert.deepEqual((updates[1] as any).data, { status: 'draft' });
+});
+
+test('createTranscription restores status on database error', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'medscribe-transcription-controller-'));
+  const audioPath = path.join(tmpDir, 'audio.webm');
+  await fs.writeFile(audioPath, Buffer.from('audio'));
+
+  const previousAsrUrl = process.env.ASR_URL;
+  process.env.ASR_URL = 'http://asr.local';
+
+  (globalThis as any).fetch = async () => ({
+    ok: true,
+    async json() {
+      return {
+        full_text: 'hello world from patient',
+        segments: [
+          { start: 0, end: 1, text: 'hello world' },
+          { start: 1, end: 2, text: 'from patient' },
+        ],
+      };
+    },
+  });
+
+  prisma.encounter.findFirst = async () => ({
+    id: 'enc-1',
+    providerId: 'provider-1',
+    status: 'draft',
+    audioFilePath: audioPath,
+    speakerAssignments: { providerSpeaker: 'SPEAKER_0', patientSpeaker: 'SPEAKER_1' },
+  });
+
+  const updates: unknown[] = [];
+  prisma.encounter.update = async (args: unknown) => {
+    updates.push(args);
+    return { id: 'enc-1' };
+  };
+
+  prisma.transcript.create = async () => {
+    throw new Error('Database error');
+  };
+
+  const req = { provider: { id: 'provider-1' }, body: { encounterId: 'enc-1' } };
+  const res = createMockResponse();
+
+  try {
+    await assert.rejects(
+      controller.createTranscription(req, res),
+      (err: Error) => err.message === 'Database error',
+    );
+  } finally {
+    (globalThis as any).fetch = originalFetch;
+    if (previousAsrUrl === undefined) {
+      delete process.env.ASR_URL;
+    } else {
+      process.env.ASR_URL = previousAsrUrl;
+    }
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+
+  assert.equal(updates.length, 2);
+  assert.deepEqual((updates[0] as any).data, { status: 'processing' });
+  assert.deepEqual((updates[1] as any).data, { status: 'draft' });
+});
+
 test('patchTranscriptSegmentSpeaker updates one segment speaker assignment', async () => {
   prisma.transcript.findFirst = async () => ({
     id: 'transcript-1',

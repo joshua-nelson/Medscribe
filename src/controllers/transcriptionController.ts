@@ -140,59 +140,69 @@ export async function createTranscription(req: Request, res: Response) {
     throw new AppError(400, 'Encounter has no audio file');
   }
 
+  const originalStatus = encounter.status;
+
   await prisma.encounter.update({
     where: { id: encounter.id },
     data: { status: 'processing' },
   });
 
-  const transcription = await transcribeAudioFile(encounter.audioFilePath, {
-    model: config.transcription.finalModel,
-  });
-
-  const assignments = parseAssignments(
-    (encounter as { speakerAssignments?: unknown }).speakerAssignments,
-  );
-  let diarization = null;
   try {
-    diarization = await diarizeAudioFile(encounter.audioFilePath);
-  } catch (error) {
-    console.warn('Diarization unavailable, proceeding with default speaker assignment', {
-      encounterId: encounter.id,
-      error: error instanceof Error ? error.message : String(error),
+    const transcription = await transcribeAudioFile(encounter.audioFilePath, {
+      model: config.transcription.finalModel,
     });
+
+    const assignments = parseAssignments(
+      (encounter as { speakerAssignments?: unknown }).speakerAssignments,
+    );
+    let diarization = null;
+    try {
+      diarization = await diarizeAudioFile(encounter.audioFilePath);
+    } catch (error) {
+      console.warn('Diarization unavailable, proceeding with default speaker assignment', {
+        encounterId: encounter.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    const segments = diarization
+      ? annotateTranscriptWithSpeakers(transcription.segments, diarization.segments, assignments)
+      : transcription.segments.map((segment) => ({
+          ...segment,
+          speaker: assignments.providerSpeaker,
+          speakerRole: 'Provider' as SpeakerRole,
+        }));
+
+    const transcriptRecord = await prisma.transcript.create({
+      data: {
+        encounterId: encounter.id,
+        fullText: transcription.full_text,
+        segments,
+        audioFilePath: encounter.audioFilePath,
+      },
+    });
+
+    await prisma.encounter.update({
+      where: { id: encounter.id },
+      data: { status: 'draft' },
+    });
+
+    res.status(201).json({
+      transcript: {
+        id: transcriptRecord.id,
+        encounterId: transcriptRecord.encounterId,
+        fullText: transcriptRecord.fullText,
+        segments: transcriptRecord.segments,
+        audioFilePath: transcriptRecord.audioFilePath,
+        createdAt: transcriptRecord.createdAt,
+      },
+    });
+  } catch (error) {
+    await prisma.encounter.update({
+      where: { id: encounter.id },
+      data: { status: originalStatus },
+    });
+    throw error;
   }
-  const segments = diarization
-    ? annotateTranscriptWithSpeakers(transcription.segments, diarization.segments, assignments)
-    : transcription.segments.map((segment) => ({
-        ...segment,
-        speaker: assignments.providerSpeaker,
-        speakerRole: 'Provider' as SpeakerRole,
-      }));
-
-  const transcriptRecord = await prisma.transcript.create({
-    data: {
-      encounterId: encounter.id,
-      fullText: transcription.full_text,
-      segments,
-      audioFilePath: encounter.audioFilePath,
-    },
-  });
-
-  await prisma.encounter.update({
-    where: { id: encounter.id },
-    data: { status: 'draft' },
-  });
-
-  res.status(201).json({
-    transcript: {
-      id: transcriptRecord.id,
-      encounterId: transcriptRecord.encounterId,
-      fullText: transcriptRecord.fullText,
-      segments: transcriptRecord.segments,
-      audioFilePath: transcriptRecord.audioFilePath,
-      createdAt: transcriptRecord.createdAt,
-    },
-  });
 }
 
 export async function asrHealth(_req: Request, res: Response) {
