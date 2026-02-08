@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/prisma';
+import { auditFromRequest } from '../services/auditService';
 import { AppError } from '../middleware/errorHandler';
 
 const ENCOUNTER_STATUSES = new Set(['recording', 'processing', 'draft', 'finalized']);
@@ -50,6 +51,11 @@ export async function createEncounter(req: Request, res: Response) {
     },
   });
 
+  await auditFromRequest(req, 'encounter.create', 'encounter', encounter.id, {
+    patientName: encounter.patientName,
+    status: encounter.status,
+  });
+
   res.status(201).json({ encounter });
 }
 
@@ -69,6 +75,10 @@ export async function getEncounter(req: Request, res: Response) {
   if (!encounter) {
     throw new AppError(404, 'Encounter not found');
   }
+
+  await auditFromRequest(req, 'encounter.view', 'encounter', encounter.id, {
+    patientName: encounter.patientName,
+  });
 
   res.json({ encounter });
 }
@@ -104,6 +114,10 @@ export async function updateEncounter(req: Request, res: Response) {
     data: updateData,
   });
 
+  await auditFromRequest(req, 'encounter.update', 'encounter', updatedEncounter.id, {
+    changes: updateData,
+  });
+
   res.json({ encounter: updatedEncounter });
 }
 
@@ -127,6 +141,11 @@ export async function listEncounters(req: Request, res: Response) {
       },
     },
     orderBy: { startedAt: 'desc' },
+  });
+
+  await auditFromRequest(req, 'encounter.list', null, undefined, {
+    count: encounters.length,
+    statusFilter: status,
   });
 
   res.json({ encounters });
