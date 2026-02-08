@@ -15,6 +15,10 @@ import { config } from './config';
 
 const app = express();
 
+// Trust proxy for proper IP handling behind Nginx reverse proxy
+// This enables req.ip to work correctly for rate limiting and audit logging
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(

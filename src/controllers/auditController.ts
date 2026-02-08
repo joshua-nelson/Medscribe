@@ -8,8 +8,9 @@ export async function getAuditLogs(req: Request, res: Response) {
     throw new AppError(401, 'Unauthorized');
   }
 
-  const { actorId, action, resourceType, resourceId, startDate, endDate, limit, offset } =
-    req.query;
+  // Restrict queries to the authenticated user's own audit logs
+  // Future: implement admin role check to allow broader access
+  const { action, resourceType, resourceId, startDate, endDate, limit, offset } = req.query;
 
   const parsedStartDate =
     startDate && typeof startDate === 'string' ? new Date(startDate) : undefined;
@@ -31,7 +32,7 @@ export async function getAuditLogs(req: Request, res: Response) {
   }
 
   const result = await queryAuditLogs({
-    actorId: actorId && typeof actorId === 'string' ? actorId : undefined,
+    actorId: providerId, // Always scope to authenticated user
     action: action && typeof action === 'string' ? (action as AuditAction) : undefined,
     resourceType:
       resourceType && typeof resourceType === 'string'
