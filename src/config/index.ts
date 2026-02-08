@@ -1,9 +1,19 @@
+import { readFileSync } from 'node:fs';
+
 function parsePositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value || '', 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return fallback;
   }
   return parsed;
+}
+
+function readDockerSecret(secretName: string): string | undefined {
+  try {
+    return readFileSync(`/run/secrets/${secretName}`, 'utf8').trim();
+  } catch {
+    return undefined;
+  }
 }
 
 function parsePositiveIntInRange(
@@ -36,7 +46,8 @@ function parseNonNegativeInt(value: string | undefined, fallback: number) {
 
 export const config = {
   jwt: {
-    secret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
+    secret:
+      readDockerSecret('jwt_secret') || process.env.JWT_SECRET || 'dev-secret-change-in-production',
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '30m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },

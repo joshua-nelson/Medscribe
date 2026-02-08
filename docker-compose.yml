@@ -51,6 +51,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./.prettierrc:/app/.prettierrc
       - ./.prettierignore:/app/.prettierignore
+    secrets:
+      - jwt_secret
     command: npx tsx watch src/index.ts
 
   frontend:
@@ -71,14 +73,18 @@ services:
     image: nginx:1.27-alpine
     ports:
       - '80:80'
+      - '443:443'
     depends_on:
       - frontend
       - backend
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
 
   asr:
-    build: ./services/asr
+    build:
+      context: ./services/asr
+      dockerfile: Dockerfile.onnx
     expose:
       - '8000'
     environment:
@@ -88,6 +94,7 @@ services:
       - ASR_MAX_INFLIGHT=${ASR_MAX_INFLIGHT:-2}
       - ASR_QUEUE_MAX=${ASR_QUEUE_MAX:-4}
       - ASR_QUEUE_TIMEOUT_MS=${ASR_QUEUE_TIMEOUT_MS:-2500}
+      - PARAKEET_MODEL=${PARAKEET_MODEL:-nvidia/parakeet-tdt-0.6b-v3}
     depends_on:
       - redis
 
@@ -130,3 +137,7 @@ volumes:
   redisdata:
   frontend_node_modules:
   frontend_next:
+
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
