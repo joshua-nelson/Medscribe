@@ -5,51 +5,28 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
+import transcriptionRouter from './routes/transcriptions';
+import encounterRouter from './routes/encounters';
+import auditRouter from './routes/audit';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRateLimiter } from './middleware/rateLimiter';
-import { sessionTimeoutMiddleware } from './middleware/sessionTimeout';
-import { csrfTokenGenerator } from './middleware/csrfProtection';
 import { config } from './config';
 
 const app = express();
 
-// SEC-007: Enhanced security headers with strict helmet configuration
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // May need adjustment based on frontend
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
-    },
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-    frameguard: {
-      action: 'deny',
-    },
-    noSniff: true,
-    xssFilter: true,
-    referrerPolicy: {
-      policy: 'strict-origin-when-cross-origin',
-    },
-  })
-);
+// Trust proxy for proper IP handling behind Nginx reverse proxy
+// This enables req.ip to work correctly for rate limiting and audit logging
+app.set('trust proxy', 1);
 
-app.use(cors({
-  origin: config.frontend.url,
-  credentials: true,
-}));
+// Security middleware
+app.use(helmet());
+app.use(
+  cors({
+    origin: config.frontend.url,
+    credentials: true,
+  }),
+);
 
 // SEC-002: Apply rate limiting to all API routes
 app.use('/api', apiRateLimiter);
@@ -67,16 +44,15 @@ app.use(cookieParser());
 // Request logging (HIPAA-safe)
 app.use(requestLogger);
 
-// SEC-016: CSRF token generation (Note: JWT + SameSite=strict already provides CSRF protection)
-// This provides additional defense-in-depth for cookie-based endpoints
-app.use(csrfTokenGenerator);
-
-// SEC-013: Session idle timeout tracking
-app.use(sessionTimeoutMiddleware);
+// API rate limiting (DoS protection)
+app.use('/api', apiRateLimiter);
 
 // Routes
 app.use('/api', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/transcriptions', transcriptionRouter);
+app.use('/api/encounters', encounterRouter);
+app.use('/api/audit', auditRouter);
 
 // Error handling (must be last)
 app.use(errorHandler);

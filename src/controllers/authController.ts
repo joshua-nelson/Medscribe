@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../models/prisma';
 import * as authService from '../services/authService';
+import { auditFromRequest } from '../services/auditService';
 import { AppError } from '../middleware/errorHandler';
 import { config } from '../config';
 import {
@@ -74,6 +75,11 @@ export async function register(req: Request, res: Response) {
   const accessToken = authService.generateAccessToken(provider.id);
   const refreshToken = await authService.generateRefreshToken(provider.id);
 
+  await auditFromRequest(req, 'auth.register', 'provider', provider.id, {
+    email: provider.email,
+    actorId: provider.id,
+  });
+
   res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
   res.status(201).json({ ...provider, accessToken });
 }
@@ -99,11 +105,21 @@ export async function login(req: Request, res: Response) {
 
   const valid = await authService.verifyPassword(password, provider.passwordHash);
   if (!valid) {
+    await auditFromRequest(req, 'auth.failed_login', 'provider', provider.id, {
+      email,
+      reason: 'invalid_password',
+      actorId: provider.id,
+    });
     throw new AppError(401, 'Invalid credentials');
   }
 
   const accessToken = authService.generateAccessToken(provider.id);
   const refreshToken = await authService.generateRefreshToken(provider.id);
+
+  await auditFromRequest(req, 'auth.login', 'provider', provider.id, {
+    email: provider.email,
+    actorId: provider.id,
+  });
 
   res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
   res.json({
@@ -122,6 +138,8 @@ export async function logout(req: Request, res: Response) {
     const payload = await authService.verifyRefreshToken(refreshToken);
     if (payload) {
       await authService.revokeRefreshToken(payload.sub);
+      // HIPAA audit: Log logout
+      await auditFromRequest(req, 'auth.logout', 'provider', payload.sub);
     }
   }
 
@@ -153,6 +171,9 @@ export async function refresh(req: Request, res: Response) {
 
   const accessToken = authService.generateAccessToken(provider.id);
   const newRefreshToken = await authService.generateRefreshToken(provider.id);
+
+  // HIPAA audit: Log token refresh
+  await auditFromRequest(req, 'auth.refresh_token', 'provider', provider.id);
 
   res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
   res.json({ ...provider, accessToken });

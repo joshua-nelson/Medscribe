@@ -1,0 +1,39 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for NeMo + PyTorch
+# - build-essential: for compiling Python packages
+# - libsndfile1: for soundfile (audio I/O)
+# - sox: audio processing
+# - ffmpeg: audio/video conversion
+# - libgomp1: OpenMP for parallel processing
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    libgomp1 \
+    libsndfile1 \
+    sox \
+    git \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch 2.4+ FIRST (before NeMo)
+# Using CPU-only version to reduce image size
+RUN pip install --no-cache-dir \
+    torch==2.4.0 \
+    torchaudio==2.4.0 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Copy requirements and install Python packages
+# Note: This will be much slower due to NeMo's 100+ dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app.py ./
+COPY transcribe.py ./
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
