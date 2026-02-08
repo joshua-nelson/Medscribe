@@ -141,3 +141,5 @@ volumes:
 secrets:
   jwt_secret:
     file: ./secrets/jwt_secret.txt
+    # Setup: openssl rand -base64 32 > secrets/jwt_secret.txt
+    # Or for dev: cp secrets/jwt_secret.txt.example secrets/jwt_secret.txt

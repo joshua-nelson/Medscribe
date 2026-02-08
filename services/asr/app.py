@@ -330,7 +330,6 @@ def parakeet_transcription(audio_path: str, model_name: str = "nvidia/parakeet-t
             segments: List[Dict[str, Any]] = []
             if hasattr(result, 'tokens') and result.tokens:
                 # Group words into segments (approximate)
-                current_segment = {"start": 0.0, "end": 0.0, "text": ""}
                 words = full_text.split()
                 duration_per_word = len(audio) / sample_rate / max(len(words), 1)
                 

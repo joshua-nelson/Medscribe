@@ -93,8 +93,8 @@ export async function auditFromRequest(
     return;
   }
 
-  const ipAddress = (req.ip || req.socket.remoteAddress || 'unknown').replace('::ffff:', '');
-  const userAgent = req.get('user-agent');
+  const ipAddress = (req.ip || req.socket?.remoteAddress || 'unknown').replace('::ffff:', '');
+  const userAgent = req.get ? req.get('user-agent') : undefined;
 
   const cleanDetails = details ? { ...details } : undefined;
   if (cleanDetails?.actorId) {
