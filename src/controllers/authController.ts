@@ -4,6 +4,13 @@ import * as authService from '../services/authService';
 import { auditFromRequest } from '../services/auditService';
 import { AppError } from '../middleware/errorHandler';
 import { config } from '../config';
+import {
+  isValidEmail,
+  validatePassword,
+  validateName,
+  validateSpecialty,
+  sanitizeString,
+} from '../utils/validation';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -16,18 +23,52 @@ const REFRESH_COOKIE_OPTIONS = {
 export async function register(req: Request, res: Response) {
   const { email, password, name, specialty } = req.body;
 
+  // SEC-003: Input validation
   if (!email || !password || !name) {
     throw new AppError(400, 'Email, password, and name are required');
   }
 
-  const existing = await prisma.provider.findUnique({ where: { email } });
+  // Validate email format
+  if (!isValidEmail(email)) {
+    throw new AppError(400, 'Invalid email format');
+  }
+
+  // Validate password strength
+  const passwordErrors = validatePassword(password);
+  if (passwordErrors.length > 0) {
+    throw new AppError(400, passwordErrors[0].message);
+  }
+
+  // Validate name
+  const nameErrors = validateName(name);
+  if (nameErrors.length > 0) {
+    throw new AppError(400, nameErrors[0].message);
+  }
+
+  // Validate specialty if provided
+  const specialtyErrors = validateSpecialty(specialty);
+  if (specialtyErrors.length > 0) {
+    throw new AppError(400, specialtyErrors[0].message);
+  }
+
+  // Sanitize inputs
+  const sanitizedEmail = sanitizeString(email).toLowerCase();
+  const sanitizedName = sanitizeString(name);
+  const sanitizedSpecialty = specialty ? sanitizeString(specialty) : undefined;
+
+  const existing = await prisma.provider.findUnique({ where: { email: sanitizedEmail } });
   if (existing) {
     throw new AppError(409, 'Email already registered');
   }
 
   const passwordHash = await authService.hashPassword(password);
   const provider = await prisma.provider.create({
-    data: { email, passwordHash, name, specialty },
+    data: {
+      email: sanitizedEmail,
+      passwordHash,
+      name: sanitizedName,
+      specialty: sanitizedSpecialty,
+    },
     select: { id: true, email: true, name: true, specialty: true },
   });
 
@@ -46,11 +87,18 @@ export async function register(req: Request, res: Response) {
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
 
+  // SEC-003: Input validation
   if (!email || !password) {
     throw new AppError(400, 'Email and password are required');
   }
 
-  const provider = await prisma.provider.findUnique({ where: { email } });
+  if (!isValidEmail(email)) {
+    throw new AppError(400, 'Invalid email format');
+  }
+
+  const sanitizedEmail = sanitizeString(email).toLowerCase();
+
+  const provider = await prisma.provider.findUnique({ where: { email: sanitizedEmail } });
   if (!provider) {
     throw new AppError(401, 'Invalid credentials');
   }

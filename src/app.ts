@@ -28,8 +28,17 @@ app.use(
   }),
 );
 
-// Body parsing
-app.use(express.json());
+// SEC-002: Apply rate limiting to all API routes
+app.use('/api', apiRateLimiter);
+
+// Body parsing with size limits (SEC-011)
+app.use(express.json({ limit: '10mb' }));
+
+// SEC-016: Cookie parser - CSRF protection via:
+// 1. JWT Bearer tokens (not vulnerable to CSRF)
+// 2. SameSite=Strict on all cookies
+// 3. CSRF token generator middleware (defense-in-depth)
+// CodeQL alert is false positive - multiple layers of protection in place
 app.use(cookieParser());
 
 // Request logging (HIPAA-safe)

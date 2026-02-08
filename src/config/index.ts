@@ -55,7 +55,7 @@ export const config = {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:3001',
+    url: frontendUrl,
   },
   audio: {
     storagePath: process.env.AUDIO_STORAGE_PATH || 'storage/audio',
