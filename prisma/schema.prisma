@@ -8,47 +8,66 @@ datasource db {
 }
 
 model Provider {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
-  email         String   @unique @map("email")
-  passwordHash  String   @map("password_hash")
-  name          String   @map("name")
-  specialty     String?  @map("specialty")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
-
-  encounters    Encounter[]
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
+  email        String      @unique @map("email")
+  passwordHash String      @map("password_hash")
+  name         String      @map("name")
+  specialty    String?     @map("specialty")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at")
+  encounters   Encounter[]
 
   @@map("providers")
 }
 
 model Encounter {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
-  providerId    String   @map("provider_id") @db.Uuid
-  patientName   String?  @map("patient_name")
-  speakerAssignments Json? @map("speaker_assignments")
-  status        String   @default("recording") @map("status")
-  startedAt     DateTime @default(now()) @map("started_at")
-  endedAt       DateTime? @map("ended_at")
-  audioFilePath String?  @map("audio_file_path")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
-
-  provider      Provider @relation(fields: [providerId], references: [id])
-  transcripts   Transcript[]
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
+  providerId         String       @map("provider_id") @db.Uuid
+  patientName        String?      @map("patient_name")
+  status             String       @default("recording") @map("status")
+  startedAt          DateTime     @default(now()) @map("started_at")
+  endedAt            DateTime?    @map("ended_at")
+  audioFilePath      String?      @map("audio_file_path")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @default(now()) @updatedAt @map("updated_at")
+  speakerAssignments Json?        @map("speaker_assignments")
+  provider           Provider     @relation(fields: [providerId], references: [id])
+  transcripts        Transcript[]
 
   @@map("encounters")
+  @@index([providerId, status])
+  @@index([providerId, startedAt(sort: Desc)])
+  @@index([status, startedAt])
 }
 
 model Transcript {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
-  encounterId  String   @map("encounter_id") @db.Uuid
-  fullText     String?  @map("full_text")
-  segments     Json?    @map("segments")
-  speakerCorrections Json? @map("speaker_corrections")
-  audioFilePath String? @map("audio_file_path")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  encounter    Encounter @relation(fields: [encounterId], references: [id])
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
+  encounterId        String    @map("encounter_id") @db.Uuid
+  fullText           String?   @map("full_text")
+  segments           Json?     @map("segments")
+  audioFilePath      String?   @map("audio_file_path")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  speakerCorrections Json?     @map("speaker_corrections")
+  encounter          Encounter @relation(fields: [encounterId], references: [id])
 
   @@map("transcripts")
+  @@index([encounterId])
+}
+
+model AuditLog {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @map("id") @db.Uuid
+  timestamp    DateTime  @default(now()) @map("timestamp") @db.Timestamptz
+  actorId      String    @map("actor_id") @db.Uuid
+  action       String    @map("action")
+  resourceType String?   @map("resource_type")
+  resourceId   String?   @map("resource_id") @db.Uuid
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+  details      Json?     @map("details")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("audit_logs")
+  @@index([actorId, timestamp(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@index([action, timestamp(sort: Desc)])
 }
