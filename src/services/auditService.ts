@@ -113,8 +113,9 @@ export async function auditFromRequest(
 }
 
 /**
- * Query audit logs (admin only)
+ * Query audit logs with optional filters
  * Supports filtering by actor, action, resource, date range
+ * Note: Access control must be enforced by the caller (e.g., scope actorId to authenticated user)
  */
 export async function queryAuditLogs(params: {
   actorId?: string;

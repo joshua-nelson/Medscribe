@@ -3,7 +3,7 @@ import RedisStore from 'rate-limit-redis';
 import redis from '../utils/redis';
 
 /**
- * Rate limiter for authentication endpoints
+ * Rate limiter for authentication endpoints (login/register)
  * Prevents brute force attacks on login/register
  * HIPAA §164.312(d) - Person or entity authentication
  */
@@ -25,7 +25,29 @@ export const authRateLimiter = rateLimit({
   },
   handler: (req, res) => {
     res.status(429).json({
-      error: 'Too many login attempts. Please try again in 15 minutes.',
+      error: 'Too many authentication attempts. Please try again in 15 minutes.',
+    });
+  },
+});
+
+/**
+ * Rate limiter for token refresh endpoint
+ * Uses IP-based limiting since refresh requests don't contain email
+ */
+export const refreshRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Higher limit since refreshes are expected during normal use
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  store: new RedisStore({
+    // @ts-expect-error - rate-limit-redis types are outdated
+    sendCommand: async (...args: string[]) => redis.call(args[0], ...args.slice(1)),
+  }),
+  keyGenerator: (req) => `ratelimit:refresh:${req.ip}`,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many token refresh attempts. Please try again in 15 minutes.',
     });
   },
 });
