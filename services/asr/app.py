@@ -153,6 +153,58 @@ def get_faster_whisper_model(model_name: str, compute_type: str):
     return model
 
 
+def get_parakeet_model(model_name: str):
+    cache_key = "parakeet_onnx:%s" % model_name
+    if cache_key in _ASR_MODEL_CACHE:
+        return _ASR_MODEL_CACHE[cache_key]
+
+    try:
+        import sherpa_onnx  # type: ignore
+    except ImportError:
+        # Fallback to NeMo if sherpa-onnx not available
+        import nemo.collections.asr as nemo_asr  # type: ignore
+        model = nemo_asr.models.ASRModel.from_pretrained(model_name=model_name)
+        _ASR_MODEL_CACHE[cache_key] = model
+        return model
+
+    # Use sherpa-onnx for ONNX model (much faster on CPU)
+    # Model: csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8
+    from huggingface_hub import hf_hub_download
+    
+    # Download ONNX model files
+    encoder = hf_hub_download(
+        repo_id="csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+        filename="encoder.int8.onnx"
+    )
+    decoder = hf_hub_download(
+        repo_id="csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+        filename="decoder.int8.onnx"
+    )
+    joiner = hf_hub_download(
+        repo_id="csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+        filename="joiner.int8.onnx"
+    )
+    tokens = hf_hub_download(
+        repo_id="csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
+        filename="tokens.txt"
+    )
+
+    # Create recognizer
+    recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
+        encoder=encoder,
+        decoder=decoder,
+        joiner=joiner,
+        tokens=tokens,
+        num_threads=2,
+        sample_rate=16000,
+        feature_dim=80,
+        decoding_method="greedy_search",
+    )
+    
+    _ASR_MODEL_CACHE[cache_key] = recognizer
+    return recognizer
+
+
 def mock_transcription(label: str) -> Dict[str, Any]:
     segments = [
         {"start": 0.0, "end": 2.8, "text": "Mock transcript for %s." % label},
@@ -242,6 +294,106 @@ def faster_whisper_transcription(audio_path: str, model_name: str, compute_type:
     }
 
 
+def parakeet_transcription(audio_path: str, model_name: str = "nvidia/parakeet-tdt-0.6b-v3") -> Dict[str, Any]:
+    try:
+        recognizer = get_parakeet_model(model_name)
+    except Exception:
+        return faster_whisper_transcription(audio_path, "base.en", "int8")
+
+    try:
+        # Check if using sherpa-onnx or NeMo
+        is_sherpa = hasattr(recognizer, 'create_stream')
+        
+        if is_sherpa:
+            # Sherpa-ONNX path (ONNX model - faster on CPU)
+            import sherpa_onnx  # type: ignore
+            import soundfile as sf
+            
+            # Read audio file
+            audio, sample_rate = sf.read(audio_path, dtype='float32')
+            
+            # Resample to 16kHz if needed
+            if sample_rate != 16000:
+                import scipy.signal
+                audio = scipy.signal.resample_poly(audio, 16000, sample_rate)
+                sample_rate = 16000
+            
+            # Create stream and decode
+            stream = recognizer.create_stream()
+            stream.accept_waveform(sample_rate, audio)
+            recognizer.decode_stream(stream)
+            result = stream.result
+            
+            full_text = result.text.strip()
+            
+            # Sherpa-ONNX provides word-level timestamps in tokens
+            segments: List[Dict[str, Any]] = []
+            if hasattr(result, 'tokens') and result.tokens:
+                # Group words into segments (approximate)
+                current_segment = {"start": 0.0, "end": 0.0, "text": ""}
+                words = full_text.split()
+                duration_per_word = len(audio) / sample_rate / max(len(words), 1)
+                
+                for i, word in enumerate(words):
+                    start = i * duration_per_word
+                    end = (i + 1) * duration_per_word
+                    segments.append({
+                        "start": round(start, 2),
+                        "end": round(end, 2),
+                        "text": word
+                    })
+            
+            if not segments and full_text:
+                segments.append({"start": 0.0, "end": len(audio) / sample_rate, "text": full_text})
+                
+            return {
+                "full_text": full_text,
+                "segments": segments,
+                "language": "en",
+                "model": "parakeet-tdt-0.6b-v3-int8-onnx",
+                "engine": "parakeet_onnx",
+                "created_at": datetime.utcnow().isoformat() + "Z",
+            }
+        else:
+            # NeMo path (PyTorch model - slower on CPU but kept for GPU compatibility)
+            output = recognizer.transcribe([audio_path], timestamps=True, batch_size=1)
+            
+            if not output or len(output) == 0:
+                return faster_whisper_transcription(audio_path, "base.en", "int8")
+
+            result = output[0]
+            full_text = result.text if hasattr(result, "text") else ""
+
+            segments: List[Dict[str, Any]] = []
+            if hasattr(result, "timestamp") and result.timestamp:
+                word_timestamps = result.timestamp.get("word", [])
+                for word_data in word_timestamps:
+                    text = word_data.get("word", "").strip()
+                    if not text:
+                        continue
+                    segments.append(
+                        {
+                            "start": float(word_data.get("start", 0.0)),
+                            "end": float(word_data.get("end", 0.0)),
+                            "text": text,
+                        }
+                    )
+
+            if not segments and full_text:
+                segments.append({"start": 0.0, "end": 0.0, "text": full_text})
+
+            return {
+                "full_text": full_text,
+                "segments": segments,
+                "language": "en",
+                "model": model_name,
+                "engine": "parakeet_nemo",
+                "created_at": datetime.utcnow().isoformat() + "Z",
+            }
+    except Exception:
+        return faster_whisper_transcription(audio_path, "base.en", "int8")
+
+
 class TranscribeRequest(BaseModel):
     audio_base64: str
     filename: Optional[str] = None
@@ -251,10 +403,11 @@ class TranscribeRequest(BaseModel):
 app = FastAPI()
 
 asr_engine = os.getenv("ASR_ENGINE", "openai_whisper").strip().lower() or "openai_whisper"
-if asr_engine not in {"openai_whisper", "faster_whisper"}:
+if asr_engine not in {"openai_whisper", "faster_whisper", "parakeet"}:
     asr_engine = "openai_whisper"
 
 asr_compute_type = os.getenv("ASR_COMPUTE_TYPE", "int8").strip() or "int8"
+asr_parakeet_model = os.getenv("PARAKEET_MODEL", "nvidia/parakeet-tdt-0.6b-v3").strip() or "nvidia/parakeet-tdt-0.6b-v3"
 asr_enable_base64_fallback = parse_bool_env("ASR_ENABLE_BASE64_FALLBACK", True)
 asr_max_inflight = parse_positive_int_env("ASR_MAX_INFLIGHT", 2)
 asr_queue_max = parse_non_negative_int_env("ASR_QUEUE_MAX", 4)
@@ -268,6 +421,9 @@ asr_pending_lock = asyncio.Lock()
 def transcribe_with_engine(audio_path: str, model_name: str) -> Dict[str, Any]:
     if asr_engine == "faster_whisper":
         return faster_whisper_transcription(audio_path, model_name, asr_compute_type)
+    elif asr_engine == "parakeet":
+        parakeet_model = asr_parakeet_model if model_name in {"small", "base", "base.en"} else model_name
+        return parakeet_transcription(audio_path, parakeet_model)
     return openai_whisper_transcription(audio_path, model_name)
 
 

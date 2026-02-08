@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/prisma';
+import { auditFromRequest } from '../services/auditService';
 import { AppError } from '../middleware/errorHandler';
 import { checkAsrHealth, transcribeAudioFile } from '../services/transcriptionService';
 import { config } from '../config';
@@ -186,6 +187,11 @@ export async function createTranscription(req: Request, res: Response) {
       data: { status: 'draft' },
     });
 
+    await auditFromRequest(req, 'transcript.view', 'transcript', transcriptRecord.id, {
+      encounterId: encounter.id,
+      segmentCount: Array.isArray(transcriptRecord.segments) ? transcriptRecord.segments.length : 0,
+    });
+
     res.status(201).json({
       transcript: {
         id: transcriptRecord.id,
@@ -278,6 +284,12 @@ export async function patchTranscriptSegmentSpeaker(req: Request, res: Response)
     },
   });
 
+  await auditFromRequest(req, 'transcript.speaker_correction', 'transcript', updated.id, {
+    segmentIndex,
+    speaker,
+    speakerRole,
+  });
+
   res.status(200).json({
     transcript: {
       id: updated.id,
@@ -348,6 +360,14 @@ export async function bulkReassignTranscriptSpeaker(req: Request, res: Response)
         correction,
       ),
     },
+  });
+
+  await auditFromRequest(req, 'transcript.speaker_correction', 'transcript', updated.id, {
+    type: 'bulk',
+    fromSpeaker,
+    toSpeaker,
+    toRole,
+    updatedCount,
   });
 
   res.status(200).json({
